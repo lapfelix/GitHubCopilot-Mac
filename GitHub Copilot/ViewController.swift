@@ -7,6 +7,9 @@ class ViewController: NSViewController, NSTextFieldDelegate {
     private var hotKey: HotKey!
     private var popupWindow: PopupWindow? = nil
     
+    // Base URL for GitHub Copilot chat
+    private static let copilotChatURL = "https://github.com/copilot"
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -20,7 +23,7 @@ class ViewController: NSViewController, NSTextFieldDelegate {
         self.view.addSubview(webView)
 
         // Load the default URL
-        if let url = URL(string: "https://github.com/copilot") {
+        if let url = URL(string: Self.copilotChatURL) {
             let request = URLRequest(url: url)
             webView.load(request)
         }
@@ -77,7 +80,15 @@ class ViewController: NSViewController, NSTextFieldDelegate {
             self?.showPopup()
         }
     }
-    
+
+    @IBAction func createNewChat(_ sender: Any) {
+        // Navigate to the home URL
+        if let url = URL(string: Self.copilotChatURL) {
+            let request = URLRequest(url: url)
+            webView.load(request)
+        }
+    }
+
     private func handleSubmittedText(_ text: String) {
         // Inject JavaScript to fill in the Copilot textarea and submit
         let script = """

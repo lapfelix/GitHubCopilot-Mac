@@ -27,7 +27,7 @@ class PreferencesWindow: NSPanel {
         self.contentView = contentView
         
         // Label
-        let label = NSTextField(labelWithString: "Hotkey:")
+        let label = NSTextField(labelWithString: "Global Hotkey:")
         label.frame = NSRect(x: 20, y: 90, width: 60, height: 20)
         contentView.addSubview(label)
         

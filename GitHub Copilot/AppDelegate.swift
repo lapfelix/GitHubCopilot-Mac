@@ -46,6 +46,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    // new chat
+    @IBAction func newChat(_ sender: Any) {
+        // grab the view controller and call new chat
+        viewController?.createNewChat(sender)
+    }
+
     func applicationWillTerminate(_ aNotification: Notification) {
         // Clean up if needed
     }
