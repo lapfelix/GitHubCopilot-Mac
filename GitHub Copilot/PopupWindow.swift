@@ -2,39 +2,126 @@ import Cocoa
 
 class PopupWindow: NSWindow {
     public let textField: CustomTextField
+    public let logoImageView: NSImageView
     
     init() {
         // Create a rect in the middle of the screen
         let screenSize = NSScreen.main?.frame ?? .zero
-        let windowSize = NSSize(width: 400, height: 60)
+        let windowSize = NSSize(width: 600, height: 65)
         let x = (screenSize.width - windowSize.width) / 2
         let y = (screenSize.height - windowSize.height) / 2
         let frame = NSRect(x: x, y: y, width: windowSize.width, height: windowSize.height)
+
+        let font = NSFont.systemFont(ofSize: 24, weight: .regular)
+
+        let topPadding: CGFloat = 10
+        let bottomPadding: CGFloat = 10
+
+        let logoImage = NSImage(named: "gh_copilot")
+        self.logoImageView = NSImageView(frame: NSRect(x: 20, y: 20, width: 20, height: 20))
+        self.logoImageView.image = logoImage
+        self.logoImageView.imageScaling = .scaleProportionallyUpOrDown
         
-        self.textField = CustomTextField(frame: NSRect(x: 10, y: 10, width: windowSize.width - 20, height: 40))
+        // Create stack view for layout
+        let stackView = NSStackView()
+        stackView.orientation = .horizontal
+        stackView.spacing = 12
+        stackView.edgeInsets = NSEdgeInsets(top: topPadding, left: 20, bottom: bottomPadding, right: 20)
+        stackView.distribution = .fill
+        
+        // Configure text field without frame
+        self.textField = CustomTextField()
+        self.textField.translatesAutoresizingMaskIntoConstraints = false
+        
         super.init(contentRect: frame,
-                  styleMask: [.borderless],
+                  styleMask: [.borderless, .nonactivatingPanel],
                   backing: .buffered,
                   defer: false)
         
+        // Configure window properties
         self.level = .floating
-        self.backgroundColor = NSColor.black.withAlphaComponent(0.8)
+        self.backgroundColor = .clear
         self.isOpaque = false
         self.hasShadow = true
         self.isReleasedWhenClosed = false
-        self.contentView?.layer?.cornerCurve = .continuous
-        self.contentView?.layer?.cornerRadius = 18
+        self.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
+        self.isMovable = true
+        
+        // Enable layer-backing for the window
+        self.contentView?.wantsLayer = true
+        
+        // Setup auto layout
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        logoImageView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Set logo size constraints
+        NSLayoutConstraint.activate([
+            logoImageView.widthAnchor.constraint(equalToConstant: 35),
+            logoImageView.heightAnchor.constraint(equalToConstant: 35)
+        ])
+        
+        // Create a visual effect view for blur
+        let blurView = NSVisualEffectView(frame: self.contentView!.bounds)
+        blurView.blendingMode = .behindWindow
+        blurView.material = .hudWindow
+        blurView.state = .active
+        blurView.wantsLayer = true
+        blurView.layer?.cornerRadius = 18
+        blurView.layer?.masksToBounds = true
+        blurView.layer?.borderWidth = 1
+        blurView.layer?.borderColor = NSColor(white: 0, alpha: 0.3).cgColor
+        blurView.autoresizingMask = [.width, .height]
+        
+        // Create the border view
+        let onePixel = 1.0 / self.backingScaleFactor
+
+        let borderView = NSView(frame: NSInsetRect(self.contentView!.bounds, onePixel, onePixel))
+        borderView.wantsLayer = true
+        borderView.layer?.borderWidth = 1
+        borderView.layer?.borderColor = NSColor(white: 1, alpha: 0.3).cgColor
+        borderView.layer?.cornerRadius = 17
+        borderView.autoresizingMask = [.width, .height]
+        
+        // Create a container view for the rounded corners
+        let containerView = NSView(frame: self.contentView!.bounds)
+        containerView.wantsLayer = true
+        containerView.layer?.cornerRadius = 18
+        containerView.layer?.masksToBounds = true
+        containerView.autoresizingMask = [.width, .height]
+        
+        // Add views in the correct order
+        containerView.addSubview(blurView)
+        containerView.addSubview(borderView)
+        
+        // Add views to stack view
+        stackView.addArrangedSubview(logoImageView)
+        stackView.addArrangedSubview(textField)
+
+        logoImageView.contentTintColor = .white
 
         // Configure the text field
         textField.backgroundColor = .clear
         textField.textColor = .white
         textField.isBezeled = false
         textField.isEditable = true
-        textField.font = NSFont.systemFont(ofSize: 24)
+        textField.font = font
         textField.focusRingType = .none
+        textField.usesSingleLineMode = true
+        textField.maximumNumberOfLines = 1
+        textField.placeholderString = "Ask Copilot"
+
+        // Add stack view to container
+        containerView.addSubview(stackView)
+        self.contentView?.addSubview(containerView)
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         
-        self.contentView?.addSubview(textField)
-        //self.makeKey()
+        // Setup stack view constraints
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
     }
     
     override var canBecomeKey: Bool {
@@ -46,22 +133,42 @@ class PopupWindow: NSWindow {
     }
 
     func show() {
-        DispatchQueue.main.asyncAfter(deadline: .now()) { [weak self] in
-            NSApp.activate(ignoringOtherApps: true)
-            self?.orderFrontRegardless()
-            self?.makeKey()
-            self?.textField.stringValue = ""
-            self?.makeFirstResponder(self?.textField)
-            _ = self?.textField.becomeFirstResponder()
+        textField.stringValue = ""
+        
+        // Temporarily add titled style mask (Snap's technique)
+        self.styleMask.insert(.titled)
+        
+        // Activate app while preserving window focus
+        NSApp.activate(ignoringOtherApps: true)
+        
+        // Show window
+        self.center()
+        self.makeKeyAndOrderFront(nil)
+        
+        // Remove the titled style mask after window is shown
+        self.styleMask.remove(.titled)
+        
+        // Configure field editor
+        if let fieldEditor = self.fieldEditor(true, for: textField) as? NSTextView {
+            fieldEditor.isFieldEditor = true
         }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            self.makeKeyAndOrderFront(nil)
-            self.makeFirstResponder(self.textField)
-        }
-
+        
+        // Force focus on text field
+        self.makeFirstResponder(textField)
     }
+    
+    @objc private func focusWindow() {
+        self.makeKeyAndOrderFront(nil)
+        self.makeFirstResponder(self.textField)
+        self.textField.becomeFirstResponder()
+    }
+
+    
+    override func resignKey() {
+        super.resignKey()
+        self.orderOut(nil)
+    }
+
 
     override func keyDown(with event: NSEvent) {
         // Dismiss when pressing escape
