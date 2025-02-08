@@ -1,8 +1,18 @@
 import Cocoa
 
 class PopupWindow: NSWindow {
-    public let textField: CustomTextField
-    public let logoImageView: NSImageView
+    public lazy var textField: CustomTextField = {
+        let textField = CustomTextField()
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        return textField
+    }()
+    public lazy var logoImageView: NSImageView = {
+        let logoImage = NSImage(named: "gh_copilot")
+        let imageView = NSImageView(frame: NSRect(x: 20, y: 20, width: 20, height: 20))
+        imageView.image = logoImage
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        return imageView
+    }()
     
     init() {
         // Create a rect in the middle of the screen
@@ -17,10 +27,6 @@ class PopupWindow: NSWindow {
         let topPadding: CGFloat = 10
         let bottomPadding: CGFloat = 10
 
-        let logoImage = NSImage(named: "gh_copilot")
-        self.logoImageView = NSImageView(frame: NSRect(x: 20, y: 20, width: 20, height: 20))
-        self.logoImageView.image = logoImage
-        self.logoImageView.imageScaling = .scaleProportionallyUpOrDown
         
         // Create stack view for layout
         let stackView = NSStackView()
@@ -30,8 +36,6 @@ class PopupWindow: NSWindow {
         stackView.distribution = .fill
         
         // Configure text field without frame
-        self.textField = CustomTextField()
-        self.textField.translatesAutoresizingMaskIntoConstraints = false
         
         super.init(contentRect: frame,
                   styleMask: [.borderless, .nonactivatingPanel],
