@@ -4,7 +4,7 @@ import HotKey
 
 class ViewController: NSViewController, NSTextFieldDelegate {
     var webView: WKWebView!
-    private var hotKey: HotKey!
+    private var hotKey: HotKey?
     private var popupWindow: PopupWindow? = nil
     
     // Base URL for GitHub Copilot chat
@@ -32,15 +32,14 @@ class ViewController: NSViewController, NSTextFieldDelegate {
         let keyCode = UserDefaults.standard.integer(forKey: "HotKeyCode")
         let modifierFlags = NSEvent.ModifierFlags(rawValue: UInt(UserDefaults.standard.integer(forKey: "HotKeyModifiers")))
         
+        // Initialize hotkey if saved settings exist
         if let key = Key(carbonKeyCode: UInt32(keyCode)) {
             hotKey = HotKey(key: key, modifiers: modifierFlags)
-        } else {
-            hotKey = HotKey(key: .l, modifiers: [.command, .option])
-        }
-        
-        // Setup hotkey handler
-        hotKey.keyDownHandler = { [weak self] in
-            self?.showPopup()
+            
+            // Setup hotkey handler
+            hotKey?.keyDownHandler = { [weak self] in
+                self?.showPopup()
+            }
         }
     }
     
@@ -76,7 +75,7 @@ class ViewController: NSViewController, NSTextFieldDelegate {
         hotKey = HotKey(key: key, modifiers: modifiers)
         
         // Setup handler
-        hotKey.keyDownHandler = { [weak self] in
+        hotKey?.keyDownHandler = { [weak self] in
             self?.showPopup()
         }
     }
