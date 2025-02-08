@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Build and Archive App
-    runs-on: macos-latest
+    runs-on: macos-15
     env:
       TEAM_ID: ${{ secrets.TEAM_ID }}
       SCHEME: "GitHub Copilot"
