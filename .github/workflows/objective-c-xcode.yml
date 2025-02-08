@@ -2,9 +2,9 @@ name: Xcode - Build, Analyze, and Release
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -108,19 +108,31 @@ jobs:
           echo "Found .app file at: $APP_PATH"
           echo "::set-output name=app_path::$APP_PATH"
 
+      - name: Rename .app File
+        id: rename_app
+        run: |
+          APP_PATH="${{ steps.find_app.outputs.app_path }}"
+          APP_BASENAME=$(basename "$APP_PATH")
+          NEW_APP_BASENAME=$(echo "$APP_BASENAME" | tr ' ' '_')
+          NEW_APP_PATH=$(dirname "$APP_PATH")/"$NEW_APP_BASENAME"
+          echo "Renaming '$APP_PATH' to '$NEW_APP_PATH'"
+          mv "$APP_PATH" "$NEW_APP_PATH"
+          echo "::set-output name=new_app_path::$NEW_APP_PATH"
+
       - name: Run Notary Tools (Staple .app)
         uses: GuillaumeFalourd/notary-tools@v1
         with:
-          product_path: ${{ steps.find_app.outputs.app_path }}
+          product_path: ${{ steps.rename_app.outputs.new_app_path }}
           apple_id: ${{ secrets.APPLE_ID }}
           password: ${{ secrets.PASSWORD }}
           team_id: ${{ secrets.TEAM_ID }}
           xcode_path: "$(xcode-select -p)"
+          keychain_profile: notarization
           staple: true
 
       - name: Rezip Notarized App
         run: |
-          APP_PATH=${{ steps.find_app.outputs.app_path }}
+          APP_PATH=${{ steps.rename_app.outputs.new_app_path }}
           rm -f GitHub_Copilot_Notarized.zip
           zip -r "GitHub_Copilot_Notarized.zip" "$APP_PATH"
           ls -la GitHub_Copilot_Notarized.zip
