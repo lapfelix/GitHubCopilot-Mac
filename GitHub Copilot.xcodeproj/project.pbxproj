@@ -181,7 +181,7 @@
 				};
 			};
 			buildConfigurationList = DC1BBF8A2D39AA9700AB0FBC /* Build configuration list for PBXProject "GitHub Copilot" */;
-			compatibilityVersion = "Xcode 15.3";
+			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
