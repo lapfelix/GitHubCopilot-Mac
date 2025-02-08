@@ -95,12 +95,12 @@ jobs:
         run: |
           unzip -o GitHub_Copilot.zip
           echo "Extraction complete. Directory contents after extraction:"
-          find . -maxdepth 2 | sort
+          find . | sort
 
       - name: Locate .app File
         id: find_app
         run: |
-          APP_PATH=$(find . -maxdepth 2 -type d -name "*.app" | head -n 1)
+          APP_PATH=$(find . -type d -name "*.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
             echo "Error: No .app file found after extraction."
             exit 1
@@ -116,14 +116,11 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           team_id: ${{ secrets.TEAM_ID }}
           xcode_path: "$(xcode-select -p)"
-          # Optional: specify a keychain profile if required, for example:
-          # keychain_profile: notarization
           staple: true
 
       - name: Rezip Notarized App
         run: |
           APP_PATH=${{ steps.find_app.outputs.app_path }}
-          # Remove the directory structure in the zip by zipping the .app folder directly
           rm -f GitHub_Copilot_Notarized.zip
           zip -r "GitHub_Copilot_Notarized.zip" "$APP_PATH"
           ls -la GitHub_Copilot_Notarized.zip
