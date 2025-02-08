@@ -3,7 +3,6 @@ name: Xcode - Build, Analyze, and Release
 on:
   push:
     branches: [ "main" ]
-    tags: ['*']  # Triggers on any tag push (e.g., 1.0.3)
   pull_request:
     branches: [ "main" ]
 
@@ -11,6 +10,8 @@ jobs:
   build:
     name: Build and Analyze Default Scheme Using xcodebuild
     runs-on: macos-15
+    outputs:
+      artifact-name: GitHub_Copilot.zip
 
     steps:
       - name: Checkout
@@ -50,15 +51,26 @@ jobs:
           zip -r "GitHub_Copilot.zip" "$APP_PATH"
           ls -la GitHub_Copilot.zip
 
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: GitHub_Copilot.zip
+          path: GitHub_Copilot.zip
+
   release:
-    name: Notarize, Create Release, and Upload Asset on Tag
+    name: Notarize, Create Release, and Upload Asset on Commit
     runs-on: macos-latest
     needs: build
-    # if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: GitHub_Copilot.zip
+          path: .
 
       - name: Debug - List Files
         run: |
@@ -94,8 +106,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: "Release ${{ github.ref_name }}"
+          tag_name: ${{ github.sha }}
+          release_name: "Release ${GITHUB_SHA::7}"
           draft: false
           prerelease: false
 
