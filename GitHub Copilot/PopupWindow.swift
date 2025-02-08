@@ -67,6 +67,7 @@ class PopupWindow: NSWindow {
         blurView.state = .active
         blurView.wantsLayer = true
         blurView.layer?.cornerRadius = 18
+        blurView.layer?.cornerCurve = .continuous
         blurView.layer?.masksToBounds = true
         blurView.layer?.borderWidth = 1
         blurView.layer?.borderColor = NSColor(white: 0, alpha: 0.3).cgColor
@@ -80,12 +81,14 @@ class PopupWindow: NSWindow {
         borderView.layer?.borderWidth = 1
         borderView.layer?.borderColor = NSColor(white: 1, alpha: 0.3).cgColor
         borderView.layer?.cornerRadius = 17
+        borderView.layer?.cornerCurve = .continuous
         borderView.autoresizingMask = [.width, .height]
         
         // Create a container view for the rounded corners
         let containerView = NSView(frame: self.contentView!.bounds)
         containerView.wantsLayer = true
         containerView.layer?.cornerRadius = 18
+        containerView.layer?.cornerCurve = .continuous
         containerView.layer?.masksToBounds = true
         containerView.autoresizingMask = [.width, .height]
         
