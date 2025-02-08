@@ -3,7 +3,7 @@
 # GitHub Copilot for Mac
 [![Xcode - Build and Analyze](https://github.com/lapfelix/GitHubCopilot-Mac/actions/workflows/objective-c-xcode.yml/badge.svg)](https://github.com/lapfelix/GitHubCopilot-Mac/actions/workflows/objective-c-xcode.yml)
 
-A lightweight, native macOS client for GitHub Copilot that provides quick access through a global hotkey.
+A lightweight, native macOS client for GitHub Copilot that provides quick access through a global hotkey. Basically like the ChatGPT app, but it's GitHub Copilot.
 
 <img width="600" alt="Screenshot 2025-02-07 at 8 12 01 PM" src="https://github.com/user-attachments/assets/5031eff1-3869-4166-8581-b48d84d0625e" />
 
