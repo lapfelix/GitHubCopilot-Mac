@@ -20,8 +20,8 @@ jobs:
       - name: Set Default Scheme
         run: |
           scheme_list=$(xcodebuild -list -json | tr -d "\n")
-          default=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
-          echo $default > default
+          default=$(echo "$scheme_list" | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
+          echo "$default" > default
           echo "Using default scheme: $default"
 
       - name: Build
@@ -58,7 +58,7 @@ jobs:
           path: GitHub_Copilot.zip
 
   release:
-    name: Notarize, Create Release, and Upload Asset on Commit
+    name: Notarize, Staple, Create Release, and Upload Asset on Commit
     runs-on: macos-latest
     needs: build
 
@@ -91,14 +91,42 @@ jobs:
             exit 1
           fi
 
-      - name: Run Notary Tools
+      - name: Extract Build Artifact
+        run: |
+          unzip -o GitHub_Copilot.zip
+          echo "Extraction complete. Directory contents after extraction:"
+          find . -maxdepth 2 | sort
+
+      - name: Locate .app File
+        id: find_app
+        run: |
+          APP_PATH=$(find . -maxdepth 2 -type d -name "*.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: No .app file found after extraction."
+            exit 1
+          fi
+          echo "Found .app file at: $APP_PATH"
+          echo "::set-output name=app_path::$APP_PATH"
+
+      - name: Run Notary Tools (Staple .app)
         uses: GuillaumeFalourd/notary-tools@v1
         with:
-          product_path: "GitHub_Copilot.zip"   # using the zipped app
+          product_path: ${{ steps.find_app.outputs.app_path }}
           apple_id: ${{ secrets.APPLE_ID }}
           password: ${{ secrets.PASSWORD }}
           team_id: ${{ secrets.TEAM_ID }}
           xcode_path: "$(xcode-select -p)"
+          # Optional: specify a keychain profile if required, for example:
+          # keychain_profile: notarization
+          staple: true
+
+      - name: Rezip Notarized App
+        run: |
+          APP_PATH=${{ steps.find_app.outputs.app_path }}
+          # Remove the directory structure in the zip by zipping the .app folder directly
+          rm -f GitHub_Copilot_Notarized.zip
+          zip -r "GitHub_Copilot_Notarized.zip" "$APP_PATH"
+          ls -la GitHub_Copilot_Notarized.zip
 
       - name: Create Release
         id: create_release
@@ -117,6 +145,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "GitHub_Copilot.zip"
-          asset_name: "GitHub_Copilot.zip"
+          asset_path: "GitHub_Copilot_Notarized.zip"
+          asset_name: "GitHub_Copilot_Notarized.zip"
           asset_content_type: application/zip
