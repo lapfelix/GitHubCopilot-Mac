@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -34,21 +34,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		DC1BBF912D39AA9700AB0FBC /* GitHub Copilot */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "GitHub Copilot";
-			sourceTree = "<group>";
-		};
-		DC1BBFA32D39AA9900AB0FBC /* GitHub CopilotTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "GitHub CopilotTests";
-			sourceTree = "<group>";
-		};
-		DC1BBFAD2D39AA9900AB0FBC /* GitHub CopilotUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "GitHub CopilotUITests";
-			sourceTree = "<group>";
-		};
+		DC1BBF912D39AA9700AB0FBC /* GitHub Copilot */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "GitHub Copilot"; sourceTree = "<group>"; };
+		DC1BBFA32D39AA9900AB0FBC /* GitHub CopilotTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "GitHub CopilotTests"; sourceTree = "<group>"; };
+		DC1BBFAD2D39AA9900AB0FBC /* GitHub CopilotUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "GitHub CopilotUITests"; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,6 +181,7 @@
 				};
 			};
 			buildConfigurationList = DC1BBF8A2D39AA9700AB0FBC /* Build configuration list for PBXProject "GitHub Copilot" */;
+			compatibilityVersion = "Xcode 15.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -204,7 +193,6 @@
 			packageReferences = (
 				DC1BC3CD2D3C64B200AB0FBC /* XCRemoteSwiftPackageReference "HotKey" */,
 			);
-			preferredProjectObjectVersion = 77;
 			productRefGroup = DC1BBF902D39AA9700AB0FBC /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
