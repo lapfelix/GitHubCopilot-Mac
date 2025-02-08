@@ -4,8 +4,11 @@ class PopupWindow: NSWindow {
     public lazy var textField: CustomTextField = {
         let textField = CustomTextField()
         textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.appearance = NSAppearance(named: .vibrantDark)
+        textField.drawsBackground = false
         return textField
     }()
+    
     public lazy var logoImageView: NSImageView = {
         let logoImage = NSImage(named: "gh_copilot")
         let imageView = NSImageView(frame: NSRect(x: 20, y: 20, width: 20, height: 20))
@@ -66,6 +69,10 @@ class PopupWindow: NSWindow {
         
         // Create a visual effect view for blur
         let blurView = NSVisualEffectView(frame: self.contentView!.bounds)
+
+        // force dark mode
+        blurView.appearance = NSAppearance(named: .vibrantDark)
+
         blurView.blendingMode = .behindWindow
         blurView.material = .hudWindow
         blurView.state = .active
@@ -115,7 +122,12 @@ class PopupWindow: NSWindow {
         textField.focusRingType = .none
         textField.usesSingleLineMode = true
         textField.maximumNumberOfLines = 1
-        textField.placeholderString = "Ask Copilot"
+        let placeholderText = "Ask Copilot"
+        let attributes: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor(white: 1, alpha: 0.5),
+            .font: font
+        ]
+        textField.placeholderAttributedString = NSAttributedString(string: placeholderText, attributes: attributes)
 
         // Add stack view to container
         containerView.addSubview(stackView)
