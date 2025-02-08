@@ -167,7 +167,7 @@ class PopupWindow: NSWindow {
     @objc private func focusWindow() {
         self.makeKeyAndOrderFront(nil)
         self.makeFirstResponder(self.textField)
-        self.textField.becomeFirstResponder()
+        _ = self.textField.becomeFirstResponder()
     }
 
     
