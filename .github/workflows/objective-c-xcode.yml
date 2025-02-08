@@ -3,7 +3,7 @@ name: Xcode - Build, Analyze, and Release
 on:
   push:
     branches: [ "main" ]
-    tags: ['*']
+    tags: ['*']  # Triggers on any tag push (e.g., 1.0.3)
   pull_request:
     branches: [ "main" ]
 
@@ -28,32 +28,56 @@ jobs:
           scheme: ${{ 'default' }}
         run: |
           if [ "$scheme" = default ]; then scheme=$(cat default); fi
-          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then
+          if ls -A | grep -i "\.xcworkspace$" > /dev/null; then
             filetype_parameter="workspace"
-            file_to_build="`ls -A | grep -i \\.xcworkspace\$`"
+            file_to_build=$(ls -A | grep -i "\.xcworkspace$")
           else
             filetype_parameter="project"
-            file_to_build="`ls -A | grep -i \\.xcodeproj\$`"
+            file_to_build=$(ls -A | grep -i "\.xcodeproj$")
           fi
-          file_to_build=$(echo $file_to_build | awk '{$1=$1;print}')
+          file_to_build=$(echo "$file_to_build" | awk '{$1=$1;print}')
+          echo "Building with $filetype_parameter: $file_to_build and scheme: $scheme"
           xcodebuild clean build analyze -scheme "$scheme" -"$filetype_parameter" "$file_to_build" -derivedDataPath build | xcpretty && exit ${PIPESTATUS[0]}
-          
+
       - name: Zip .app Output
         run: |
           APP_PATH=$(find build/Build/Products -name "*.app" -print -quit)
           echo "Found app at: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: .app not found in build/Build/Products directory"
+            exit 1
+          fi
           zip -r "GitHub_Copilot.zip" "$APP_PATH"
-          ls -l GitHub_Copilot.zip
+          ls -la GitHub_Copilot.zip  # Debug: List the zipped file
 
   release:
     name: Notarize, Create Release, and Upload Asset on Tag
     runs-on: macos-latest
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+   # if: startsWith(github.ref, 'refs/tags/')
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Debug - List Files
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Listing current directory contents:"
+          ls -la
+          echo "Listing all subdirectories:"
+          find . -maxdepth=2 | sort
+
+      - name: Check for GitHub_Copilot.zip file
+        run: |
+          if [ -f "GitHub_Copilot.zip" ]; then
+            echo "GitHub_Copilot.zip found:"
+            ls -la GitHub_Copilot.zip
+          else
+            echo "Error: GitHub_Copilot.zip not found. Debugging directory structure:"
+            find . -name "*.zip" -print
+            exit 1
+          fi
 
       - name: Run Notary Tools
         uses: GuillaumeFalourd/notary-tools@v1
