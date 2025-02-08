@@ -1,8 +1,8 @@
-name: Xcode Archive, Notarize, and Release
+name: Xcode - Archive, Code Sign, Notarize, and Release
 
 on:
   push:
-    branches: 
+    branches:
       - main
   pull_request:
     branches:
@@ -10,12 +10,11 @@ on:
 
 jobs:
   build:
-    name: Build and Archive App
+    name: Archive app in Release mode
     runs-on: macos-15
-    env:
-      TEAM_ID: ${{ secrets.TEAM_ID }}
-      SCHEME: "GitHub Copilot"
-      CONFIGURATION: "Release"
+    outputs:
+      artifact-name: GitHub_Copilot_Notarized.zip
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,47 +22,46 @@ jobs:
       - name: Set Xcode Path
         run: sudo xcode-select -s "$(xcode-select -p)"
 
-      - name: Create and Unlock Keychain
+      - name: Create and Unlock Signing Keychain
         run: |
-          KEYCHAIN=build.keychain
+          KEYCHAIN=signing.keychain
           KEYCHAIN_PASSWORD=${{ secrets.KEYCHAIN_PASSWORD }}
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -t 3600 -l "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          # Make the new keychain default so that codesign can find the certificates
-          security list-keychains -s "$KEYCHAIN" "$(security list-keychains | sed 's/[",]//g')"
-          echo "Keychain created and unlocked."
-      
-      - name: Import Mac Development Certificate
+          security list-keychains -s "$KEYCHAIN" $(security list-keychains | sed 's/[",]//g')
+          echo "Signing keychain created and unlocked."
+
+      - name: Import Developer ID Certificate
         run: |
-          KEYCHAIN=build.keychain
-          CERT_P12=certificate.p12
-          echo ${{ secrets.MAC_DEVELOPMENT_CERTIFICATE_P12 }} | base64 --decode > "$CERT_P12"
+          KEYCHAIN=signing.keychain
+          CERT_P12=developer_cert.p12
+          echo "${{ secrets.MAC_DEVELOPMENT_CERTIFICATE_P12 }}" | base64 --decode > "$CERT_P12"
           security import "$CERT_P12" -k ~/Library/Keychains/"$KEYCHAIN" -P "${{ secrets.MAC_DEVELOPMENT_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
-          echo "Certificate imported."
-      
-      - name: List Code Signing Identities
-        run: |
+          echo "Imported Developer ID certificate:"
           security find-identity -v -p codesigning
 
-      - name: Archive the App
+      - name: Archive the App in Release Mode
         run: |
-          # Discover the project file (assumes one project in the root)
-          PROJECT_FILE=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
-          if [ -z "$PROJECT_FILE" ]; then
-            echo "Error: .xcodeproj not found"
-            exit 1
+          # Determine project file and scheme
+          if ls -A | grep -i "\.xcworkspace$" > /dev/null; then
+            FILE_TYPE="workspace"
+            PROJECT_FILE=$(ls -A | grep -i "\.xcworkspace$")
+          else
+            FILE_TYPE="project"
+            PROJECT_FILE=$(ls -A | grep -i "\.xcodeproj$")
           fi
+          # Define scheme; you can adjust this to your desired scheme name
+          SCHEME="GitHub Copilot"
           ARCHIVE_PATH="build/GitHub_Copilot.xcarchive"
-          echo "Archiving the app using project: $PROJECT_FILE and scheme: $SCHEME"
-          xcodebuild archive \
-            -project "$PROJECT_FILE" \
+          echo "Archiving using ${FILE_TYPE}: ${PROJECT_FILE} and scheme: ${SCHEME}"
+          xcodebuild clean archive \
+            -$FILE_TYPE "$PROJECT_FILE" \
             -scheme "$SCHEME" \
-            -configuration "$CONFIGURATION" \
-            -archivePath "$ARCHIVE_PATH" \
-            clean archive
+            -configuration Release \
+            -archivePath "$ARCHIVE_PATH" | xcpretty
 
-      - name: Export the Archive for Developer ID
+      - name: Export the Archive (Code Signed .app)
         run: |
           EXPORT_OPTIONS_PLIST="exportOptions.plist"
           cat <<EOF > ${EXPORT_OPTIONS_PLIST}
@@ -82,7 +80,7 @@ jobs:
               <key>stripSwiftSymbols</key>
               <true/>
               <key>teamID</key>
-              <string>${{ env.TEAM_ID }}</string>
+              <string>${{ secrets.TEAM_ID }}</string>
               <key>thinning</key>
               <string>&lt;none&gt;</string>
           </dict>
@@ -90,26 +88,130 @@ jobs:
           EOF
 
           EXPORT_PATH="build/exported"
-          echo "Exporting archive to: $EXPORT_PATH"
+          echo "Exporting archive to ${EXPORT_PATH} using export options plist:"
+          cat ${EXPORT_OPTIONS_PLIST}
           xcodebuild -exportArchive \
             -archivePath "build/GitHub_Copilot.xcarchive" \
             -exportPath "$EXPORT_PATH" \
-            -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
-            
+            -exportOptionsPlist "$EXPORT_OPTIONS_PLIST" | xcpretty
+
           APP_PATH=$(find "$EXPORT_PATH" -name "*.app" -print -quit)
           if [ -z "$APP_PATH" ]; then
             echo "Error: .app not found in exported archive."
             exit 1
           fi
-          echo "Found exported .app at: $APP_PATH"
-          
-          # Package the .app into a .zip for notarization
+          echo "Found exported and codesigned .app at: $APP_PATH"
+
+          # Zip the exported .app for notarization
           ZIP_FILE="GitHub_Copilot.zip"
           zip -r "$ZIP_FILE" "$APP_PATH"
-          ls -l "$ZIP_FILE"
-      
+          ls -la "$ZIP_FILE"
+
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: GitHub_Copilot.zip
           path: GitHub_Copilot.zip
+
+  release:
+    name: Notarize, Staple, Create Release, and Upload Asset
+    runs-on: macos-latest
+    needs: build
+    env:
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      PASSWORD: ${{ secrets.PASSWORD }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: GitHub_Copilot.zip
+          path: .
+
+      - name: Extract Build Artifact
+        run: |
+          unzip -o GitHub_Copilot.zip
+          echo "Extraction complete. Listing directory:"
+          find . | sort
+
+      - name: Locate .app File
+        id: find_app
+        run: |
+          APP_PATH=$(find . -type d -name "*.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: No .app file found after extraction."
+            exit 1
+          fi
+          echo "Found .app at: $APP_PATH"
+          echo "::set-output name=app_path::$APP_PATH"
+
+      - name: Rename .app File (remove spaces)
+        id: rename_app
+        run: |
+          APP_PATH="${{ steps.find_app.outputs.app_path }}"
+          APP_BASENAME=$(basename "$APP_PATH")
+          NEW_APP_BASENAME=$(echo "$APP_BASENAME" | tr ' ' '_')
+          NEW_APP_PATH=$(dirname "$APP_PATH")/"$NEW_APP_BASENAME"
+          echo "Renaming '$APP_PATH' to '$NEW_APP_PATH'"
+          mv "$APP_PATH" "$NEW_APP_PATH"
+          echo "::set-output name=new_app_path::$NEW_APP_PATH"
+
+      - name: Create Notarization Zip Archive
+        id: zip_app_for_notarization
+        run: |
+          APP_PATH="${{ steps.rename_app.outputs.new_app_path }}"
+          NOTARIZATION_ZIP="GitHub_Copilot_forNotarization.zip"
+          rm -f "$NOTARIZATION_ZIP"
+          zip -r "$NOTARIZATION_ZIP" "$APP_PATH"
+          echo "Created zip for notarization: $NOTARIZATION_ZIP"
+          echo "::set-output name=notarization_zip::$NOTARIZATION_ZIP"
+
+      - name: Submit for Notarization
+        run: |
+          NOTARIZATION_ZIP=${{ steps.zip_app_for_notarization.outputs.notarization_zip }}
+          KEYCHAIN_PATH=$RUNNER_TEMP/notarization.keychain-db
+          KEYCHAIN_PASS=$(uuidgen)
+          security create-keychain -p "${KEYCHAIN_PASS}" ${KEYCHAIN_PATH}
+          security set-keychain-settings -lut 900 ${KEYCHAIN_PATH}
+          security unlock-keychain -p "${KEYCHAIN_PASS}" ${KEYCHAIN_PATH}
+          xcrun notarytool store-credentials "notarization" --apple-id "${APPLE_ID}" --password "${PASSWORD}" --team-id "${TEAM_ID}" --keychain "${KEYCHAIN_PATH}"
+          echo "Submitting $NOTARIZATION_ZIP for notarization..."
+          xcrun notarytool submit "$NOTARIZATION_ZIP" --keychain-profile "notarization" --keychain "${KEYCHAIN_PATH}" --wait
+          security delete-keychain ${KEYCHAIN_PATH}
+
+      - name: Staple the Notarization Ticket to the .app
+        run: |
+          APP_PATH=${{ steps.rename_app.outputs.new_app_path }}
+          echo "Stapling notarization ticket to $APP_PATH..."
+          xcrun stapler staple "$APP_PATH"
+
+      - name: Rezip Notarized App for Release
+        run: |
+          APP_PATH=${{ steps.rename_app.outputs.new_app_path }}
+          rm -f GitHub_Copilot_Notarized.zip
+          zip -r "GitHub_Copilot_Notarized.zip" "$APP_PATH"
+          ls -la GitHub_Copilot_Notarized.zip
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.sha }}
+          release_name: "Release ${GITHUB_SHA::7}"
+          draft: false
+          prerelease: false
+
+      - name: Upload Notarized Binary as Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "GitHub_Copilot_Notarized.zip"
+          asset_name: "GitHub_Copilot_Notarized.zip"
+          asset_content_type: application/zip
