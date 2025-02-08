@@ -1,3 +1,5 @@
+<img width="200" alt="icon" src="https://github.com/user-attachments/assets/5ad60645-a19a-45f9-88fb-522abe023608" />
+
 # GitHub Copilot for Mac
 
 A lightweight, native macOS client for GitHub Copilot that provides quick access through a global hotkey.
