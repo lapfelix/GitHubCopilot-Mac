@@ -124,7 +124,7 @@ class PopupWindow: NSWindow {
         textField.maximumNumberOfLines = 1
         let placeholderText = "Ask Copilot"
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor(white: 1, alpha: 0.5),
+            .foregroundColor: NSColor(white: 1, alpha: 0.7),
             .font: font
         ]
         textField.placeholderAttributedString = NSAttributedString(string: placeholderText, attributes: attributes)
