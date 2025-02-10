@@ -10,7 +10,7 @@ class ViewController: NSViewController, NSTextFieldDelegate, WKNavigationDelegat
     private lazy var leftHeaderGrabView: NSView = {
         let view = DraggableView(frame: NSRect(x: 0, y: self.view.frame.height - self.view.safeAreaInsets.top, width: 78, height: 55))
         view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.blue.withAlphaComponent(0.5).cgColor
+        //view.layer?.backgroundColor = NSColor.blue.withAlphaComponent(0.5).cgColor
         return view
     }()
     private var middleHeaderGrabView: NSView?
@@ -261,7 +261,7 @@ class ViewController: NSViewController, NSTextFieldDelegate, WKNavigationDelegat
                     // Use DraggableView for middleHeaderGrabView as well.
                     let middleView = DraggableView(frame: frame)
                     middleView.wantsLayer = true
-                    middleView.layer?.backgroundColor = NSColor.red.withAlphaComponent(0.5).cgColor
+                    //middleView.layer?.backgroundColor = NSColor.red.withAlphaComponent(0.5).cgColor
                     self.view.addSubview(middleView)
                     self.middleHeaderGrabView = middleView
                 }
